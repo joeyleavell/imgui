@@ -97,6 +97,11 @@
 #define GLFW_HAS_GAMEPAD_API          (GLFW_VERSION_MAJOR * 1000 + GLFW_VERSION_MINOR * 100 >= 3300) // 3.3+ glfwGetGamepadState() new api
 #define GLFW_HAS_GET_KEY_NAME         (GLFW_VERSION_MAJOR * 1000 + GLFW_VERSION_MINOR * 100 >= 3200) // 3.2+ glfwGetKeyName()
 
+#if !GLFW_HAS_MOUSE_PASSTHROUGH && GLFW_HAS_WINDOW_HOVERED && defined(_WIN32)
+    #define GLFW_WND_PROC
+    static WNDPROC g_GlfwWndProc = NULL;
+#endif
+
 // GLFW data
 enum GlfwClientApi
 {
@@ -575,6 +580,11 @@ void ImGui_ImplGlfw_Shutdown()
 
     io.BackendPlatformName = NULL;
     io.BackendPlatformUserData = NULL;
+
+#ifdef GLFW_WND_PROC
+    g_GlfwWndProc = NULL;
+#endif
+
     IM_DELETE(bd);
 }
 
@@ -924,8 +934,7 @@ static void ImGui_ImplGlfw_DestroyWindow(ImGuiViewport* viewport)
 
 // We have submitted https://github.com/glfw/glfw/pull/1568 to allow GLFW to support "transparent inputs".
 // In the meanwhile we implement custom per-platform workarounds here (FIXME-VIEWPORT: Implement same work-around for Linux/OSX!)
-#if !GLFW_HAS_MOUSE_PASSTHROUGH && GLFW_HAS_WINDOW_HOVERED && defined(_WIN32)
-static WNDPROC g_GlfwWndProc = NULL;
+#ifdef GLFW_WND_PROC
 static LRESULT CALLBACK WndProcNoInputs(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (msg == WM_NCHITTEST)
